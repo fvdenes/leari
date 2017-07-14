@@ -5,13 +5,12 @@ date: '2017-07-11'
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ## Analysis of *Anodorhynchus leari* population growth from CEMAVE census data
 ### Aim: assess whether the population of *A. leari* experienced growth during the census period, while accounting for detection probability.
-Considerations: (1) survey effort was not temporally balanced throughout the study period; (2) counts are for one population, there is no spatial replication 
+Considerations:  
+1. Counts are for one population, there is no spatial replication  
+2. Survey effort was not balanced throughout the study period. Number of months surveyed varies among years, and number of surveys varies among months  
+3. *'unmarked'* models assume counts are done for multiple M sites. To fit the *A. leari* census data, we can either substitute space for time, or generate dummy copies of the one site (see below)  
 
 
 ```{r Load data, echo=FALSE, message=FALSE, warning=FALSE}
@@ -22,6 +21,7 @@ library(kableExtra)
 
 matrix <- read_csv("~/Dropbox/A.leari/modelo censos/matrix-censos-CEMAVE_3_one population.csv",col_types = cols(date = col_date(format = "%Y-%m-%d")))
 
+# a function to get mid day for month and convert to julian day, to use to get the julian date of surveys with known month but unknown day
 mid.month.day <- function(month){
   day <- paste(month,"-","15",sep="")
   day <- strptime(day,"%m-%d")
@@ -29,7 +29,11 @@ mid.month.day <- function(month){
   return(day)
 }
 
-matrix$julian <- mid.month.day(matrix$month)
+
+matrix$julian <- NA
+matrix$julian[-which(is.na(matrix$date)==T)] <- format(matrix$date[-which(is.na(matrix$date)==T)], "%j")
+matrix$julian[which(is.na(matrix$date)==T)] <- mid.month.day(matrix$month[which(is.na(matrix$date)==T)])
+
 matrix <- as.data.frame(matrix)
 matrix <- matrix[,c(3:5,7,9)]
 
@@ -38,39 +42,180 @@ kable(matrix,digits = 6, caption="Census dataset", format = "html") %>%
 
 
 ```
+### Some exploratory graphs
+```{r Exploratory Plots, echo=FALSE, message=FALSE, warning=FALSE}
+boxplot(count~time, data=matrix[11:116,])
+boxplot(count~year, data=matrix[11:116,])
 
+```
+
+####Possible modelling approaches with *'unmarked'* (R package):  
+A. Use the Binomial N-mixture model (pcount), using as "sites" the different years, and generating abundance estimates for each year, which could then be used to calculate trend. Time of surveys (AM/PM) would be included as survey-specific covariate. The problem is that, although counts within months can be assumed to sample closed populations (they are mostly done in subsequent days - see table below), the same cannot be said about different months, because of mortality/emigration. So it would not be possible to use all counts for each year as multiple visits. Including Julian date as another survey covariate could account for monthly variation, but would also complicate interpretation of detection probability  
+\
+B. Use the Binomial N-mixture model (pcount), but instead of replacing sites with years, use months, and include a "site"-specifc covariate indicating the year. Time of surveys (AM/PM) would be included as survey-specific covariate. Could then generate predictions for each month-year, and calculate yearly trend  
+\
+C. Use the open-population N-mixture model (pcountOpen). This models estimates trends directly, with years defined as the primary periods. Would use copies of the one surveyed site fro multiple "dummy"sites, resulting in a dataset with no spatial variation and allowing focus on the temporal changes. Time of surveys (AM/PM) would be included as survey-specific covariate. As in approach A, the problem is defining the secondary periods (within which the population is assumed to be closed). Including Julian date as a survey covariate could account for monthly variation, with the caveat mentioned above  
+
+***
+#### Approach B - Binomial-Poisson and NB mixture models
+  
+Excluding years 2001-2003 due to few counts and no covariate data (see table below)  
+\
+Detection (observation-level) covariate: time of day (factor: AM/PM)    
+\
+Abundance ("site"-level) covariates: month (numeric: 6-11)  and year (numeric: 2004-2014)  
+\
+Year as linear, 2nd and 3rd order polynomials
 ```{r Prepare for unmarked, echo=FALSE, message=FALSE, warning=FALSE}
 library(unmarked)
-# observation data. this is an MxJ matrix of count data, where M is the number
-site.name <- as.factor(unique(paste(matrix[,2],matrix[,3])))
-sites <- unique(matrix[,c(2,3)])
-rownames(sites) <- seq(length=nrow(sites))
+ 
+# observation data. 
 
-y <- matrix(NA,34,6)
-times <- matrix(NA,34,6)
-months <- matrix(NA,34,6)
+sites <- unique(matrix[,c(2,3)]) 
+rownames(sites) <- seq(length=nrow(sites)) 
+ 
+y <- matrix(NA,34,6) 
+times <- matrix(NA,34,6) 
+months <- years <- rep(NA,34) 
 
-for (i in 1:34){
-  counts <- matrix[which(matrix$year==sites[i,1]&matrix$month==sites[i,2]),4]
-  time <- matrix[which(matrix$year==sites[i,1]&matrix$month==sites[i,2]),1]
-  month <- matrix[which(matrix$year==sites[i,1]&matrix$month==sites[i,2]),3]
-  for(t in 1:length(counts)){
-    y[i,t] <- counts[t]
-    times[i,t] <- time[t]
-    months[i,t] <- month[t]
-  }
-}
-y
-times 
-months 
-
-months <- matrix(as.factor(months),34,6)
-
-obs.covs <- list(times=times,months=months)
-
-site.covs <- data.frame(year=as.factor(sites[[1]]),month=as.factor(sites[[2]]),julian=matrix$julian[as.integer(row.names(unique(matrix[,c(2,3)])))])
+ 
+for (i in 1:34){ 
+  counts <- matrix[which(matrix$year==sites[i,1]&matrix$month==sites[i,2]),4] 
+  time <- matrix[which(matrix$year==sites[i,1]&matrix$month==sites[i,2]),1] 
+  month <- matrix[which(matrix$year==sites[i,1]&matrix$month==sites[i,2]),3] 
+  year <- matrix[which(matrix$year==sites[i,1]&matrix$month==sites[i,2]),2] 
+  for(t in 1:length(counts)){ 
+    y[i,t] <- counts[t] 
+    times[i,t] <- time[t] 
+    months[i] <- month[t] 
+    years[i] <- year[t]
+  } 
+} 
 
 
+df <- as.data.frame(cbind(months,years,y))
+colnames(df) <- c("Month","Year","1","2","3","4","5","6")
 
-umf1<- unmarkedFramePCount(y=y,siteCovs = site.covs,obsCovs = obs.covs)
-summary(umf1)
+
+kable(df, caption="Counts for each surveyed month", format = "html") %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE)
+
+
+kable(cbind(df[,1:2],times), caption="Time of day of counts", format = "html") %>%
+  kable_styling(bootstrap_options = c("striped","hover","condensed"), full_width = FALSE)
+
+
+obs.covs <- list(times=times) 
+ 
+site.covs <- data.frame(year=sites[[1]]-2000,year2=(sites[[1]]-2000)^2,year3=(sites[[1]]-2000)^3 ,month=sites[[2]])
+
+y <- y[11:34,]
+#y[20,3]<-NA #removing this outlier (see table)
+obs.covs$times<- obs.covs$times[11:34,]
+site.covs <- site.covs[11:34,] 
+
+umf1<- unmarkedFramePCount(y=y,siteCovs = site.covs,obsCovs = obs.covs) 
+summary(umf1) 
+```
+  
+***  
+#### Fit the models
+Only NB models converge
+```{r Fit a model, echo=FALSE, message=FALSE, warning=FALSE}
+
+#Null (state level)
+#m01 <- pcount(~times~1,umf1,mixture = "P")# does not converge
+m02 <- pcount(~times~1,umf1,mixture = "NB")
+#Linear year
+#m03 <- pcount(~times~year+month,umf1,mixture = "P",se=FALSE  )
+#m04 <- pcount(~times~year+month,umf1,mixture = "P",starts=coef(m1)) # does not converge
+m05 <- pcount(~times~year+month,umf1,mixture = "NB",se=FALSE  )
+m06 <- pcount(~times~year+month,umf1,mixture = "NB",starts=coef(m05))
+# Quadratic year
+#m07 <- pcount(~times~year+year2+month,umf1,mixture = "P",se=FALSE  )
+#m08 <- pcount(~times~year+year2+month,umf1,mixture = "P",starts=coef(m07))# does not converge
+m09 <- pcount(~times~year+year2+month,umf1,mixture = "NB",se=FALSE  )
+m10 <- pcount(~times~year+year2+month,umf1,mixture = "NB",starts=coef(m09))
+# Cubic year
+#m11 <- pcount(~times~year+year2+year3+month,umf1,mixture = "P",se=FALSE  )
+#m12 <- pcount(~times~year+year2+year3+month,umf1,mixture = "P",starts=coef(m11))# does not converge
+m13 <- pcount(~times~year+year2+year3+month,umf1,mixture = "NB",se=FALSE  )
+m14 <- pcount(~times~year+year2+year3+month,umf1,mixture = "NB",starts=coef(m13))
+
+flist <- fitList(timesNull=m02,timesyear=m06,timesyear2=m10,timesyear3=m14)
+modSel(flist) 
+```
+Best model includes 'year' as a 2nd order polynomial for abundance  
+\
+Model summary and CIs
+```{r Model summary, echo=FALSE, message=FALSE, warning=FALSE}
+summary(m10)
+round(confint(m10,type="det"),2)
+round(confint(m10,type="state"),2)
+```
+\
+Predicted detection probabilities (AM/PM)
+```{r Detection probabilities, echo=FALSE, message=FALSE, warning=FALSE}
+newDataDet <- data.frame(times=factor(c("AM","PM")))
+pred<- predict(m10, type = 'det', newdata = newDataDet, appendData=TRUE)
+pred[,c(5,1:4)]
+```
+
+***
+
+```{r Abundance predictions, echo=FALSE, message=FALSE, warning=FALSE}
+newData <- data.frame(year = 10,year2=100, month = 6:11)
+pre1 <- predict(m10, type = 'state', newdata = newData, appendData=TRUE)
+
+plot(Predicted~month,data=pre1, main= "Predicted abundances (2010) with 95%CI", type="line",ylim=c(0,2500))
+lines(lower~month,data=pre1, main= "Predicted abundances, November", type="line",lty=2)
+lines(upper~month,data=pre1, main= "Predicted abundances, November", type="line",lty=2)
+
+newData2 <- data.frame(year = 4:14,year2=(4:14)^2 , month = 11)
+pre2 <- predict(m10, type = 'state', newdata = newData2, appendData=TRUE)
+
+plot(Predicted~year,data=pre2, main= "Predicted abundances (Nov) with 95%CI", type="line",ylim=c(0,2500))
+lines(lower~year,data=pre2, main= "Predicted abundances, November", type="line",lty=2)
+lines(upper~year,data=pre2, main= "Predicted abundances, November", type="line",lty=2)
+
+```
+
+***
+#### Model goodness-of-fit  
+Parametric bootstrap of sum of squared residuals
+```{r G-o-F, echo=FALSE, message=FALSE, warning=FALSE, results="hide"}
+pb <- parboot(m10, nsim=100, report=1)
+```
+
+```{r G-o-F2, echo=FALSE, message=FALSE, warning=FALSE}
+print(pb)
+plot(pb, main="")
+```
+  
+\
+Model fit is OK: the observed residual variance, or root mean squared error (dashed vertical line) is within the distribution of the expected residual variance (bars in plot)
+
+***  
+
+```{r Trend, echo=FALSE, message=FALSE, warning=FALSE, results="hide"}
+newData3 <- data.frame(year = 1:14,year2=(1:14)^2, month = 11)
+pre3 <- predict(m10, type = 'state', newdata = newData3, appendData=TRUE)
+trend1 <- round(pre3[14,c(1,3,4)]/pre3[4,c(1,3,4)]*100,2)
+trend1
+
+trend2 <- round(pre3[14,c(1,3,4)]/pre3[1,c(1,3,4)]*100,2)
+trend2
+```
+#### Population Trend based on predictions for the 2004-2014 period (June): `r trend1[1]`% (`r trend1[2]` - `r trend1[3]`)  
+  
+Considering 2001-2014, trend is: `r trend2[1]`% (`r trend2[2]` - `r trend2[3]`)  
+
+```{r Trend2, echo=FALSE, message=FALSE, warning=FALSE, results="hide"}
+boxplot(count~year, data=matrix,ylim=c(0,2500),col="grey")
+lines(Predicted~year,data=pre3, main= "Predicted abundances (Nov) with 95%CI", type="line",ylim=c(0,2500),lwd=2)
+lines(lower~year,data=pre3, type="line",lty=2)
+lines(upper~year,data=pre3, type="line",lty=2)
+```
+
+
+
