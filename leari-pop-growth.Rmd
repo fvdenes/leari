@@ -107,7 +107,7 @@ kable(cbind(df[,1:2],times), caption="Time of day of counts", format = "html") %
 
 obs.covs <- list(times=times) 
  
-site.covs <- data.frame(year=sites[[1]]-2000,year2=(sites[[1]]-2000)^2,year3=(sites[[1]]-2000)^3 ,month=sites[[2]])
+site.covs <- data.frame(year=sites[[1]]-2000,year2=(sites[[1]]-2000)^2,year3=(sites[[1]]-2000)^3 ,month=sites[[2]],month2=sites[[2]]^2,fmonth=as.factor(sites[[2]]))
 
 y <- y[11:34,]
 #y[20,3]<-NA #removing this outlier (see table)
@@ -142,7 +142,19 @@ m10 <- pcount(~times~year+year2+month,umf1,mixture = "NB",starts=coef(m09))
 m13 <- pcount(~times~year+year2+year3+month,umf1,mixture = "NB",se=FALSE  )
 m14 <- pcount(~times~year+year2+year3+month,umf1,mixture = "NB",starts=coef(m13))
 
-flist <- fitList(timesNull=m02,timesyear=m06,timesyear2=m10,timesyear3=m14)
+# Quadratic month and year effects
+m15 <- pcount(~times~year+year2+month+month2,umf1,mixture = "NB",se=FALSE)
+m16 <- pcount(~times~year+year2+month+month2,umf1,mixture = "NB",starts=coef(m15))
+
+# Month effect as a factor, and include interaction with years
+m17 <- pcount(~times~year+year2+fmonth,umf1,mixture = "NB",se=FALSE  )
+m18 <- pcount(~times~year+year2+fmonth,umf1,mixture = "NB",starts=coef(m17))
+
+m19 <- pcount(~times~fmonth*(year+year2),umf1,mixture = "NB",se=FALSE  )
+m20 <- pcount(~times~fmonth*(year+year2),umf1,mixture = "NB",starts=coef(m19))
+
+flist <- fitList(timesNull=m02,timesyear=m06,timesyear2=m10,timesyear3=m14,month2year2=m16,fmonthyear2=m18,fmonth_intyear2=m20)
+
 modSel(flist) 
 ```
 Best model includes 'year' as a 2nd order polynomial for abundance  
