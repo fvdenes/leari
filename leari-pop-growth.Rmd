@@ -1,7 +1,7 @@
 ---
 title: "Leari"
-author: "Francisco V. Dénes"
-date: '2017-07-11'
+author: "Erica Pacifico, Francisco V. Dénes"
+date: '2017-07-21'
 output: html_document
 ---
 
@@ -63,9 +63,11 @@ Excluding years 2001-2003 due to few counts and no covariate data (see table bel
 \
 Detection (observation-level) covariate: time of day (factor: AM/PM)    
 \
-Abundance ("site"-level) covariates: month (numeric: 6-11)  and year (numeric: 2004-2014)  
+Abundance ("site"-level) covariates: month (numeric: 6-11, and alternatively as factor) and year (numeric: 2004-2014)  
 \
-Year as linear, 2nd and 3rd order polynomials
+Year as linear, 2nd and 3rd order polynomials. Month as linear and 2nd order polynomials  
+\
+Also fit a model with an interaction between months (factor) and years (to allow the effect of months to vary among years)    
 ```{r Prepare for unmarked, echo=FALSE, message=FALSE, warning=FALSE}
 library(unmarked)
  
@@ -153,11 +155,11 @@ m18 <- pcount(~times~year+year2+fmonth,umf1,mixture = "NB",starts=coef(m17))
 m19 <- pcount(~times~fmonth*(year+year2),umf1,mixture = "NB",se=FALSE  )
 m20 <- pcount(~times~fmonth*(year+year2),umf1,mixture = "NB",starts=coef(m19))
 
-flist <- fitList(timesNull=m02,timesyear=m06,timesyear2=m10,timesyear3=m14,month2year2=m16,fmonthyear2=m18,fmonth_intyear2=m20)
+flist <- fitList(times_Null=m02,times_monthyear=m06,times_monthyear2=m10,timesmonthyear3=m14,month2year2=m16,fmonthyear2=m18,fmonth_intyear2=m20)
 
 modSel(flist) 
 ```
-Best model includes 'year' as a 2nd order polynomial for abundance  
+Best model includes a linear effect of 'month' (as numeric variable) and 'year' as a 2nd order polynomial for abundance  
 \
 Model summary and CIs
 ```{r Model summary, echo=FALSE, message=FALSE, warning=FALSE}
