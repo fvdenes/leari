@@ -114,36 +114,36 @@ tabela_dim
 ## agriculture
 ## fire
 ## village
-
-# Assessing correlations among predictors####
-#Correspondence analysis for factor - factor correlations
-corresp(~ agriculture + ranching, data=surv_caa)
-corresp(~ agriculture + fire, data=surv_caa)
-corresp(~ agriculture + village, data=surv_caa)
-corresp(~ agriculture + licuri_presence, data=surv_caa)
-corresp(~ ranching + fire, data=surv_caa)
-corresp(~ ranching + village, data=surv_caa)
-corresp(~ ranching + licuri_presence, data=surv_caa)
-corresp(~ fire + village, data=surv_caa)
-corresp(~ fire + licuri_presence, data=surv_caa)
-corresp(~ village + licuri_presence, data=surv_caa)
-corresp(~ range + ecoregion, data=surv_caa)
-corresp(~ occurrence + ecoregion, data=surv_caa)
-#Correlation between continuous variables (cattle and goat)
-cor(surv_caa$cattle,surv_caa$goat, use="complete.obs", method="spearman")
-cor.test(surv_caa$cattle,surv_caa$goat,method="spearman")
-
-corresp(~ cattle + agriculture, data=surv_caa)
-corresp(~ cattle + ranching, data=surv_caa)
-corresp(~ cattle + fire, data=surv_caa)
-corresp(~ cattle + village, data=surv_caa)
-corresp(~ cattle + licuri_presence, data=surv_caa)
-
-corresp(~ goat + agriculture, data=surv_caa)
-corresp(~ goat + ranching, data=surv_caa)
-corresp(~ goat + fire, data=surv_caa)
-corresp(~ goat + village, data=surv_caa)
-corresp(~ goat + licuri_presence, data=surv_caa)
+# 
+# # Assessing correlations among predictors####
+# #Correspondence analysis for factor - factor correlations
+# corresp(~ agriculture + ranching, data=surv_caa)
+# corresp(~ agriculture + fire, data=surv_caa)
+# corresp(~ agriculture + village, data=surv_caa)
+# corresp(~ agriculture + licuri_presence, data=surv_caa)
+# corresp(~ ranching + fire, data=surv_caa)
+# corresp(~ ranching + village, data=surv_caa)
+# corresp(~ ranching + licuri_presence, data=surv_caa)
+# corresp(~ fire + village, data=surv_caa)
+# corresp(~ fire + licuri_presence, data=surv_caa)
+# corresp(~ village + licuri_presence, data=surv_caa)
+# corresp(~ range + ecoregion, data=surv_caa)
+# corresp(~ occurrence + ecoregion, data=surv_caa)
+# #Correlation between continuous variables (cattle and goat)
+# cor(surv_caa$cattle,surv_caa$goat, use="complete.obs", method="spearman")
+# cor.test(surv_caa$cattle,surv_caa$goat,method="spearman")
+# 
+# corresp(~ cattle + agriculture, data=surv_caa)
+# corresp(~ cattle + ranching, data=surv_caa)
+# corresp(~ cattle + fire, data=surv_caa)
+# corresp(~ cattle + village, data=surv_caa)
+# corresp(~ cattle + licuri_presence, data=surv_caa)
+# 
+# corresp(~ goat + agriculture, data=surv_caa)
+# corresp(~ goat + ranching, data=surv_caa)
+# corresp(~ goat + fire, data=surv_caa)
+# corresp(~ goat + village, data=surv_caa)
+# corresp(~ goat + licuri_presence, data=surv_caa)
 
 # #### E. cactorum: ####
 
@@ -201,48 +201,19 @@ Ecac2<-zeroinfl(count_Eupsittula_cactorum~
                 data=surv_caa)
 summary(Ecac2)
 
-# Ecac3<-zeroinfl(count_Eupsittula_cactorum~
-#                   month+ecoregion+cattle*occurrence+goat+
-#                   ranching+agriculture+fire+occurrence|1
-#                 ,dist ="poisson",
-#                 offset = scale(surv_caa$habfrag_length),
-#                 data=surv_caa)
-# summary(Ecac3)
+Ecac3<-zeroinfl(count_Eupsittula_cactorum~
+                  month+ecoregion+cattle*ranching+goat*
+                  ranching+agriculture+fire+occurrence|1
+                ,dist ="poisson",
+                offset = scale(surv_caa$habfrag_length),
+                data=surv_caa)
+summary(Ecac3)
 
-AICtab(Ecac1,Ecac2)
+AICtab(Ecac1,Ecac2,Ecac3)
 confint(Ecac2)
 
 # Predictions #
 #Figuras com as predicoes de abundancia em diferentes configuracoes das variaveis independentes
-# A function to generate predictions (with CIs) from zeroinfl models
-predCIs<-function(object,newdata, CIprobs=c(0.025,0.975)){
-  mf <- model.frame(delete.response(object$terms$full), 
-                    newdata, na.action = na.pass, xlev = object$levels)
-  X <- model.matrix(delete.response(object$terms$count), 
-                    mf, contrasts = object$contrasts$count)
-  Z <- model.matrix(delete.response(object$terms$zero), 
-                    mf, contrasts = object$contrasts$zero)
-
-  
-  mu <- exp(X %*% coef(object,"count"))[,1]
-  phi <- plogis(Z %*% coef(object,"zero"))[,1]
-  rval <- (1 - phi) * mu
-  library(MASS)
-  frame<-mvrnorm(n=1000,mu=coef(object),Sigma=vcov(object))
-  frame_mu<-exp(X %*% t(frame)[grepl("count", colnames(frame)),])
-  frame_phi<-plogis(Z %*% t(frame)[grepl("zero", colnames(frame)),])
-  frame_rval<- (1-frame_phi) * frame_mu
-  
-  frameCIs<-t(apply(cbind(rval,frame_rval),1,FUN=quantile,probs=CIprobs))
-  
-  frameCIs2<- data.frame(N=rval,lower=frameCIs[,1], upper=frameCIs[,2])
-  frameCIs2$lower2<- frameCIs2$N-(frameCIs2$upper-frameCIs2$lower)/2
-  frameCIs2$upper2<- frameCIs2$N+(frameCIs2$upper-frameCIs2$lower)/2
-  
-  out<- data.frame(N= frameCIs2$N,lower=frameCIs2$lower2, upper=frameCIs2$upper2)
-  
-  return(out)
-}
 
 # Preds.Fig - Cattle ####
 pdf1.Ecac<-data.frame(
@@ -258,8 +229,8 @@ pdf1.Ecac<-data.frame(
 
 Ecac_cattle<-predCIs(object=Ecac2,newdata=pdf1.Ecac)
 Ecac_cattle$cattle<-rep(seq(0,100),4)
-Ecac_cattle$occurrence<-factor(rep(c("Outside range","Core","Historically occupied","Recently occupied"),each=101))
-Ecac_cattle$occurrence<-factor(Ecac_cattle$occurrence, levels = c("Outside range","Historically occupied","Recently occupied","Core"))
+Ecac_cattle$occurrence<-factor(rep(c("No record","Core","Historically occupied","Recently occupied"),each=101))
+Ecac_cattle$occurrence<-factor(Ecac_cattle$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 Ecac_cattle$presence<-factor(rep(c("Absent","Present","Absent","Present"),each=101))
 Ecac_cattle$presence<-factor(Ecac_cattle$presence, levels = c("Present","Absent"))
 Ecac_cattle
@@ -291,8 +262,8 @@ pdf2.Ecac<-data.frame(
 
 Ecac_goat<-predCIs(object=Ecac2,newdata=pdf2.Ecac)
 Ecac_goat$goat<-rep(seq(0,100),4)
-Ecac_goat$occurrence<-factor(rep(c("Outside range","Core","Historically occupied","Recently occupied"),each=101))
-Ecac_goat$occurrence<-factor(Ecac_goat$occurrence, levels = c("Outside range","Historically occupied","Recently occupied","Core"))
+Ecac_goat$occurrence<-factor(rep(c("No record","Core","Historically occupied","Recently occupied"),each=101))
+Ecac_goat$occurrence<-factor(Ecac_goat$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 Ecac_goat$presence<-factor(rep(c("Absent","Present","Absent","Present"),each=101))
 Ecac_goat$presence<-factor(Ecac_goat$presence, levels = c("Present","Absent"))
 Ecac_goat
@@ -465,8 +436,8 @@ pdf1.Fxan<-data.frame(
 
 Fxan_cattle<-predCIs(object=Fxan2,newdata=pdf1.Fxan)
 Fxan_cattle$cattle<-rep(seq(0,100),4)
-Fxan_cattle$occurrence<-factor(rep(c("Outside range","Core","Historically occupied","Recently occupied"),each=101))
-Fxan_cattle$occurrence<-factor(Fxan_cattle$occurrence, levels = c("Outside range","Historically occupied","Recently occupied","Core"))
+Fxan_cattle$occurrence<-factor(rep(c("No record","Core","Historically occupied","Recently occupied"),each=101))
+Fxan_cattle$occurrence<-factor(Fxan_cattle$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 Fxan_cattle$presence<-factor(rep(c("Absent","Present","Absent","Present"),each=101))
 Fxan_cattle$presence<-factor(Fxan_cattle$presence, levels = c("Present","Absent"))
 Fxan_cattle
@@ -498,8 +469,8 @@ pdf2.Fxan<-data.frame(
 
 Fxan_goat<-predCIs(object=Fxan2,newdata=pdf2.Fxan)
 Fxan_goat$goat<-rep(seq(0,100),4)
-Fxan_goat$occurrence<-factor(rep(c("Outside range","Core","Historically occupied","Recently occupied"),each=101))
-Fxan_goat$occurrence<-factor(Fxan_goat$occurrence, levels = c("Outside range","Historically occupied","Recently occupied","Core"))
+Fxan_goat$occurrence<-factor(rep(c("No record","Core","Historically occupied","Recently occupied"),each=101))
+Fxan_goat$occurrence<-factor(Fxan_goat$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 Fxan_goat$presence<-factor(rep(c("Absent","Present","Absent","Present"),each=101))
 Fxan_goat$presence<-factor(Fxan_goat$presence, levels = c("Present","Absent"))
 Fxan_goat
@@ -850,11 +821,11 @@ ggsave(filename="C:/Users/voeroesd/Dropbox/Ecac_Fxan_plots.pdf",
        height = 297, 
        units = "mm")
 
-ggsave(filename="~/Dropbox/Ecac_Fxan_plots.pdf", 
-       plot = grid_comp, 
-       width = 210, 
-       height = 297, 
-       units = "mm")
+# ggsave(filename="~/Dropbox/Ecac_Fxan_plots.pdf", 
+#        plot = grid_comp, 
+#        width = 210, 
+#        height = 297, 
+#        units = "mm")
 
 
 #### Species richness ####
@@ -897,8 +868,8 @@ pdf1.rich<-data.frame(
 
 rich_cattle<-predCIs(object=rich2,newdata=pdf1.rich)
 rich_cattle$cattle<-rep(seq(0,100),4)
-rich_cattle$occurrence<-factor(rep(c("Outside range","Core","Historically occupied","Recently occupied"),each=101))
-rich_cattle$occurrence<-factor(rich_cattle$occurrence, levels = c("Outside range","Historically occupied","Recently occupied","Core"))
+rich_cattle$occurrence<-factor(rep(c("No record","Core","Historically occupied","Recently occupied"),each=101))
+rich_cattle$occurrence<-factor(rich_cattle$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 rich_cattle$presence<-factor(rep(c("Absent","Present","Absent","Present"),each=101))
 rich_cattle$presence<-factor(rich_cattle$presence, levels = c("Present","Absent"))
 rich_cattle
@@ -932,8 +903,8 @@ pdf2.rich<-data.frame(
 
 rich_goat<-predCIs(object=rich2,newdata=pdf2.rich)
 rich_goat$goat<-rep(seq(0,100),4)
-rich_goat$occurrence<-factor(rep(c("Outside range","Core","Historically occupied","Recently occupied"),each=101))
-rich_goat$occurrence<-factor(rich_goat$occurrence, levels = c("Outside range","Historically occupied","Recently occupied","Core"))
+rich_goat$occurrence<-factor(rep(c("No record","Core","Historically occupied","Recently occupied"),each=101))
+rich_goat$occurrence<-factor(rich_goat$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 rich_goat$presence<-factor(rep(c("Absent","Present","Absent","Present"),each=101))
 rich_goat$presence<-factor(rich_goat$presence, levels = c("Present","Absent"))
 rich_goat
@@ -1012,9 +983,9 @@ rich_agriculture$presence<-factor(c("Absent","Absent","Present","Present","Absen
 rich_agriculture
 
 
-p4.rich<-ggplot(data=rich_ranching)+
-  geom_errorbar(mapping = aes(x=ranching, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=ranching,y=N, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+p4.rich<-ggplot(data=rich_agriculture)+
+  geom_errorbar(mapping = aes(x=agriculture, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=agriculture,y=N, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
   scale_color_discrete(name= "Lear's Macaw records")+
   scale_shape_discrete(name= "Lear's Macaw occurrence")+
   labs(y=expression(italic("R"["parrots"])))+
@@ -1114,11 +1085,11 @@ ggsave(filename="C:/Users/voeroesd/Dropbox/richness_plots.pdf",
        height = 140, 
        units = "mm")
 
-ggsave(filename="~/Dropbox/richness_plots.pdf", 
-       plot = grid_richness, 
-       width = 210, 
-       height = 140, 
-       units = "mm")
+# ggsave(filename="~/Dropbox/richness_plots.pdf", 
+#        plot = grid_richness, 
+#        width = 210, 
+#        height = 140, 
+#        units = "mm")
 
 
 
@@ -1158,8 +1129,8 @@ str(pdf1.licuri)
 licuri_cattle<-predict(object=m_licuri,newdata=pdf1.licuri,type="response",se.fit=T)
 licuri_cattle<-data.frame(p=licuri_cattle$fit,lower=licuri_cattle$fit-1.96*licuri_cattle$se.fit,upper=licuri_cattle$fit+1.96*licuri_cattle$se.fit)
 licuri_cattle$cattle<-rep(seq(0,100),4)
-licuri_cattle$occurrence<-factor(rep(c("Outside range","Core","Historically occupied","Recently occupied"),each=101))
-licuri_cattle$occurrence<-factor(licuri_cattle$occurrence, levels = c("Outside range","Historically occupied","Recently occupied","Core"))
+licuri_cattle$occurrence<-factor(rep(c("No record","Core","Historically occupied","Recently occupied"),each=101))
+licuri_cattle$occurrence<-factor(licuri_cattle$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 licuri_cattle$presence<-factor(rep(c("Absent","Present","Absent","Present"),each=101))
 licuri_cattle$presence<-factor(licuri_cattle$presence, levels = c("Present","Absent"))
 
@@ -1196,8 +1167,8 @@ str(pdf2.licuri)
 licuri_goat<-predict(object=m_licuri,newdata=pdf2.licuri,type="response",se.fit=T)
 licuri_goat<-data.frame(p=licuri_goat$fit,lower=licuri_goat$fit-1.96*licuri_goat$se.fit,upper=licuri_goat$fit+1.96*licuri_goat$se.fit)
 licuri_goat$goat<-rep(seq(0,100),4)
-licuri_goat$occurrence<-factor(rep(c("Outside range","Core","Historically occupied","Recently occupied"),each=101))
-licuri_goat$occurrence<-factor(licuri_goat$occurrence, levels = c("Outside range","Historically occupied","Recently occupied","Core"))
+licuri_goat$occurrence<-factor(rep(c("No record","Core","Historically occupied","Recently occupied"),each=101))
+licuri_goat$occurrence<-factor(licuri_goat$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 licuri_goat$presence<-factor(rep(c("Absent","Present","Absent","Present"),each=101))
 licuri_goat$presence<-factor(licuri_goat$presence, levels = c("Present","Absent"))
 
@@ -1378,17 +1349,17 @@ p6.licuri
 # Grid Licuri ####
 grid_licuri<-grid.arrange(p1.licuri,p2.licuri,p3.licuri,p4.licuri,p5.licuri,p6.licuri,nrow=3,widths=c(1,1.35))
 
-ggsave(filename="C:/Users/voeroesd/Dropbox/", 
+ggsave(filename="C:/Users/voeroesd/Dropbox/licuri_plots.pdf", 
        plot = grid_licuri, 
        width = 210, 
        height = 140, 
        units = "mm")
 
-ggsave(filename="~/Dropbox/licuri_plots.pdf", 
-       plot = grid_licuri, 
-       width = 210, 
-       height = 140, 
-       units = "mm")
+# ggsave(filename="~/Dropbox/licuri_plots.pdf", 
+#        plot = grid_licuri, 
+#        width = 210, 
+#        height = 140, 
+#        units = "mm")
 
 # Habitat model ####
 surv_caa$offset<-scale(surv_caa$habfrag_length)[,1]
@@ -1433,85 +1404,110 @@ levels(hab.cattle$occurrence)[levels(hab.cattle$occurrence)=="0"] <- "No record"
 levels(hab.cattle$occurrence)[levels(hab.cattle$occurrence)=="1"] <- "Core"
 levels(hab.cattle$occurrence)[levels(hab.cattle$occurrence)=="2"] <- "Historically occupied"
 levels(hab.cattle$occurrence)[levels(hab.cattle$occurrence)=="3"] <- "Recently occupied"
+hab.cattle$occurrence<-factor(hab.cattle$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 
 
-hab.norecord<-subset(hab.cattle,occurrence=="No record")
-hab.core<-subset(hab.cattle,occurrence=="Core")
-hab.historic<-subset(hab.cattle,occurrence=="Historically occupied")
-hab.recent<-subset(hab.cattle,occurrence=="Recently occupied")
+hab.cattle$presence<-rep(c("Absent","Present","Absent","Present"),each=404)
 
-p1.hab.norecord<-ggplot(data=hab.norecord)+
-  geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=habitat),alpha=0.3)+
-  geom_line(mapping = aes(x=cattle, y=mean,color=habitat),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+scale_color_discrete(name= "Habitat conservation status")+
+hab.degraded<-subset(hab.cattle,habitat=="Degraded")
+hab.degraded.agri<-subset(hab.cattle,habitat=="Degraded mixed with agriculture")
+hab.rural<-subset(hab.cattle,habitat=="Rural settlement")
+hab.conserved<-subset(hab.cattle,habitat=="Conserved")
+
+# 
+# hab.norecord<-subset(hab.cattle,occurrence=="No record")
+# hab.core<-subset(hab.cattle,occurrence=="Core")
+# hab.historic<-subset(hab.cattle,occurrence=="Historically occupied")
+# hab.recent<-subset(hab.cattle,occurrence=="Recently occupied")
+
+p1.hab.degraded<-ggplot(data=hab.degraded)+
+  geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
+  geom_line(mapping = aes(x=cattle, y=mean,color=occurrence,linetype=presence),size=0.5)+
+  scale_fill_discrete(name= "Lear's Macaw records")+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1),shape = guide_colorbar(order=2),fill = guide_legend(order = 1))+
-  labs(y=expression(psi ~" in areas with no records"), x="Cattle abundance")+
-  theme(axis.title.x = element_text(size=6),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p1.hab.norecord
+  labs(y=expression(psi["degraded habitat"]), x="Cattle abundance")+
+  theme(axis.title.x = element_text(size=8),
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p1.hab.degraded
 
-p1.hab.core<-ggplot(data=hab.core)+
-  geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=str_wrap(habitat,20)),alpha=0.3)+
-  geom_line(mapping = aes(x=cattle, y=mean,color=str_wrap(habitat,20)),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+scale_color_discrete(name= "Habitat conservation status")+
-  guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
-  labs(y=expression(psi ~ " in core areas"), x="Cattle abundance")+
-  theme(axis.title.x = element_text(size=6),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.title = element_text(size=7),
-        legend.text = element_text(size=6),
-        legend.key.size=unit(0.25,"cm"))
-p1.hab.core
-
-p1.hab.historic<-ggplot(data=hab.historic)+
-  geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=habitat),alpha=0.3)+
-  geom_line(mapping = aes(x=cattle, y=mean,color=habitat),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+scale_color_discrete(name= "Habitat conservation status")+
-  guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
-  labs(y=expression(psi ~" in historically occupied areas"), x="Cattle abundance")+
-  theme(axis.title.x = element_text(size=6),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p1.hab.historic
-
-p1.hab.recent<-ggplot(data=hab.recent)+
-  geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=str_wrap(habitat,20)),alpha=0.3)+
-  geom_line(mapping = aes(x=cattle, y=mean,color=str_wrap(habitat,20)),size=0.5)+
+p1.hab.degraded.agri<-ggplot(data=hab.degraded.agri)+
+  geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
+  geom_line(mapping = aes(x=cattle, y=mean,color=occurrence,linetype=presence),size=0.5)+
   scale_fill_discrete(name= "Habitat conservation status")+
   scale_color_discrete(name= "Habitat conservation status")+
+  scale_linetype_discrete(name= "Lear's Macaw occurrence")+
+  guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
+  labs(y=expression(psi["degraded habitat with cultivation"]), x="Cattle abundance")+
+  theme(axis.title.x = element_text(size=8),
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.title = element_text(size=8),
+        legend.text = element_text(size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
+p1.hab.degraded.agri
+
+p1.hab.rural<-ggplot(data=hab.rural)+
+  geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
+  geom_line(mapping = aes(x=cattle, y=mean,color=occurrence,linetype=presence),size=0.5)+
+  scale_fill_discrete(name= "Habitat conservation status")+
+  scale_color_discrete(name= "Habitat conservation status")+
+  scale_linetype_discrete(name= "Lear's Macaw occurrence")+
+  guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
+  labs(y=expression(psi["rural settlement"]), x="Cattle abundance")+
+  theme(axis.title.x = element_text(size=8),
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.title = element_text(size=8),
+        legend.text = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p1.hab.rural
+
+p1.hab.conserved<-ggplot(data=hab.conserved)+
+  geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
+  geom_line(mapping = aes(x=cattle, y=mean,color=occurrence,linetype=presence),size=0.5)+
+  scale_fill_discrete(name= "Habitat conservation status")+
+  scale_color_discrete(name= "Habitat conservation status")+
+  scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1,override.aes = list(colour = "white",fill="white")),
+         linetype = guide_legend(order = 1,override.aes = list(colour = "white")),
          fill = guide_legend(order = 1))+
-  labs(y=expression(psi ~ " in recently occupied areas"), x="Cattle abundance")+
-  theme(axis.title.x = element_text(size=6),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.text = element_text(color = "white",size=6),
-        legend.title = element_text(color = "white",size=7),
-        legend.key = element_rect(fill = "white",size=6),
-        legend.key.size=unit(0.25,"cm"))
-p1.hab.recent
+  labs(y=expression(psi["conserved habitat"]), x="Cattle abundance")+
+  theme(axis.title.x = element_text(size=8),
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(color = "white",size=8),
+        legend.title = element_text(color = "white",size=8),
+        legend.key = element_rect(fill = "white",size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
 
-grid_hab_cattle<-grid.arrange(p1.hab.norecord,p1.hab.core,p1.hab.historic,p1.hab.recent,nrow=2,widths=c(1,1.35))
 
-ggsave(filename="C:/Users/voeroesd/Dropbox/", 
+p1.hab.conserved
+
+grid_hab_cattle<-grid.arrange(p1.hab.degraded,p1.hab.degraded.agri,p1.hab.rural,p1.hab.conserved,nrow=2,widths=c(1,1.45))
+
+ggsave(filename="C:/Users/voeroesd/Dropbox/habitat_cattle.pdf", 
        plot = grid_hab_cattle, 
        width = 210, 
        height = 140, 
        units = "mm")
 
-ggsave(filename="~/Dropbox/habitat_cattle.pdf", 
-       plot = grid_hab_cattle, 
-       width = 210, 
-       height = 140, 
-       units = "mm")
+# ggsave(filename="~/Dropbox/habitat_cattle.pdf", 
+#        plot = grid_hab_cattle, 
+#        width = 210, 
+#        height = 140, 
+#        units = "mm")
 
 # Preds.Fig Goat####
 hab.goat<-predicts(model=hab2,values="0;0-100;0;0;F(2);F",set.seed=1)
@@ -1528,88 +1524,113 @@ levels(hab.goat$occurrence)[levels(hab.goat$occurrence)=="0"] <- "No record"
 levels(hab.goat$occurrence)[levels(hab.goat$occurrence)=="1"] <- "Core"
 levels(hab.goat$occurrence)[levels(hab.goat$occurrence)=="2"] <- "Historically occupied"
 levels(hab.goat$occurrence)[levels(hab.goat$occurrence)=="3"] <- "Recently occupied"
+hab.goat$occurrence<-factor(hab.goat$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 
 
-hab2.norecord<-subset(hab.goat,occurrence=="No record")
-hab2.core<-subset(hab.goat,occurrence=="Core")
-hab2.historic<-subset(hab.goat,occurrence=="Historically occupied")
-hab2.recent<-subset(hab.goat,occurrence=="Recently occupied")
+hab.goat$presence<-rep(c("Absent","Present","Absent","Present"),each=404)
 
-p2.hab.norecord<-ggplot(data=hab2.norecord)+
-  geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=habitat),alpha=0.3)+
-  geom_line(mapping = aes(x=goat, y=mean,color=habitat),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+scale_color_discrete(name= "Habitat conservation status")+
+hab.degraded.2<-subset(hab.goat,habitat=="Degraded")
+hab.degraded.agri.2<-subset(hab.goat,habitat=="Degraded mixed with agriculture")
+hab.rural.2<-subset(hab.goat,habitat=="Rural settlement")
+hab.conserved.2<-subset(hab.goat,habitat=="Conserved")
+# 
+# hab2.norecord<-subset(hab.goat,occurrence=="No record")
+# hab2.core<-subset(hab.goat,occurrence=="Core")
+# hab2.historic<-subset(hab.goat,occurrence=="Historically occupied")
+# hab2.recent<-subset(hab.goat,occurrence=="Recently occupied")
+
+p2.hab.degraded<-ggplot(data=hab.degraded.2)+
+  geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
+  geom_line(mapping = aes(x=goat, y=mean,color=occurrence,linetype=presence),size=0.5)+
+  scale_fill_discrete(name= "Lear's Macaw records")+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1),shape = guide_colorbar(order=2),fill = guide_legend(order = 1))+
-  labs(y=expression(psi ~" in areas with no records"), x="Goat abundance")+
-  theme(axis.title.x = element_text(size=6),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p2.hab.norecord
+  labs(y=expression(psi["degraded habitat"]), x="Goat abundance")+
+  theme(axis.title.x = element_text(size=8),
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p2.hab.degraded
 
-p2.hab.core<-ggplot(data=hab2.core)+
-  geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=str_wrap(habitat,20)),alpha=0.3)+
-  geom_line(mapping = aes(x=goat, y=mean,color=str_wrap(habitat,20)),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+scale_color_discrete(name= "Habitat conservation status")+
-  guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
-  labs(y=expression(psi ~ " in core areas"), x="Goat abundance")+
-  theme(axis.title.x = element_text(size=6),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.title = element_text(size=7),
-        legend.text = element_text(size=6),
-        legend.key.size=unit(0.25,"cm"))
-p2.hab.core
-
-p2.hab.historic<-ggplot(data=hab2.historic)+
-  geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=habitat),alpha=0.3)+
-  geom_line(mapping = aes(x=goat, y=mean,color=habitat),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+scale_color_discrete(name= "Habitat conservation status")+
-  guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
-  labs(y=expression(psi ~" in historically occupied areas"), x="Goat abundance")+
-  theme(axis.title.x = element_text(size=6),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p2.hab.historic
-
-p2.hab.recent<-ggplot(data=hab2.recent)+
-  geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=str_wrap(habitat,20)),alpha=0.3)+
-  geom_line(mapping = aes(x=goat, y=mean,color=str_wrap(habitat,20)),size=0.5)+
+p2.hab.degraded.agri<-ggplot(data=hab.degraded.agri.2)+
+  geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
+  geom_line(mapping = aes(x=goat, y=mean,color=occurrence,linetype=presence),size=0.5)+
   scale_fill_discrete(name= "Habitat conservation status")+
   scale_color_discrete(name= "Habitat conservation status")+
+  scale_linetype_discrete(name= "Lear's Macaw occurrence")+
+  guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
+  labs(y=expression(psi["degraded habitat with cultivation"]), x="Goat abundance")+
+  theme(axis.title.x = element_text(size=8),
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.title = element_text(size=8),
+        legend.text = element_text(size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
+p2.hab.degraded.agri
+
+p2.hab.rural<-ggplot(data=hab.rural.2)+
+  geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
+  geom_line(mapping = aes(x=goat, y=mean,color=occurrence,linetype=str_wrap(presence)),size=0.5)+
+  scale_fill_discrete(name= "Habitat conservation status")+
+  scale_color_discrete(name= "Habitat conservation status")+
+  scale_linetype_discrete(name= "Lear's Macaw occurrence")+
+  guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
+  labs(y=expression(psi["rural settlement"]), x="Goat abundance")+
+  theme(axis.title.x = element_text(size=8),
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.title = element_text(size=8),
+        legend.text = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p2.hab.rural
+
+p2.hab.conserved<-ggplot(data=hab.conserved.2)+
+  geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
+  geom_line(mapping = aes(x=goat, y=mean,color=occurrence,linetype=presence),size=0.5)+
+  scale_fill_discrete(name= "Habitat conservation status")+
+  scale_color_discrete(name= "Habitat conservation status")+
+  scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1,override.aes = list(colour = "white",fill="white")),
+         linetype = guide_legend(order = 1,override.aes = list(colour = "white")),
          fill = guide_legend(order = 1))+
-  labs(y=expression(psi ~ " in recently occupied areas"), x="Goat abundance")+
-  theme(axis.title.x = element_text(size=6),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.text = element_text(color = "white",size=6),
-        legend.title = element_text(color = "white",size=7),
-        legend.key = element_rect(fill = "white",size=6),
-        legend.key.size=unit(0.25,"cm"))
-p2.hab.recent
+  labs(y=expression(psi["conserved habitat"]), x="Goat abundance")+
+  theme(axis.title.x = element_text(size=8),
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(color = "white",size=8),
+        legend.title = element_text(color = "white",size=8),
+        legend.key = element_rect(fill = "white",size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
 
-grid_hab_goat<-grid.arrange(p2.hab.norecord,p2.hab.core,p2.hab.historic,p2.hab.recent,nrow=2,widths=c(1,1.35))
 
-ggsave(filename="C:/Users/voeroesd/Dropbox/", 
+p2.hab.conserved
+
+grid_hab_goat<-grid.arrange(p2.hab.degraded,p2.hab.degraded.agri,p2.hab.rural,p2.hab.conserved,nrow=2,widths=c(1,1.45))
+
+ggsave(filename="C:/Users/voeroesd/Dropbox/habitat_goat.pdf", 
        plot = grid_hab_goat, 
        width = 210, 
        height = 140, 
        units = "mm")
 
-ggsave(filename="~/Dropbox/habitat_goat.pdf", 
-       plot = grid_hab_goat, 
-       width = 210, 
-       height = 140, 
-       units = "mm")
+# ggsave(filename="~/Dropbox/habitat_goat.pdf", 
+#        plot = grid_hab_goat, 
+#        width = 210, 
+#        height = 140, 
+#        units = "mm")
 
 # Preds.Fig Licuri ####
 hab.licuri<-predicts(model=hab2,values="0;0;F;0;F(2);F",set.seed=1)
+
 
 colnames(hab.licuri)[10]<-"habitat"
 hab.licuri$habitat<-as.factor(hab.licuri$habitat)
@@ -1623,86 +1644,104 @@ levels(hab.licuri$occurrence)[levels(hab.licuri$occurrence)=="0"] <- "No record"
 levels(hab.licuri$occurrence)[levels(hab.licuri$occurrence)=="1"] <- "Core"
 levels(hab.licuri$occurrence)[levels(hab.licuri$occurrence)=="2"] <- "Historically occupied"
 levels(hab.licuri$occurrence)[levels(hab.licuri$occurrence)=="3"] <- "Recently occupied"
+hab.licuri$occurrence<-factor(hab.licuri$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
+
+
+hab.licuri$presence<-rep(c("Absent","Present","Absent","Present"),each=8)
 
 hab.licuri$licuri_presence<-as.factor(hab.licuri$licuri_presence)
 levels(hab.licuri$licuri_presence)[levels(hab.licuri$licuri_presence)=="0"] <- "Licuri palm absent"
 levels(hab.licuri$licuri_presence)[levels(hab.licuri$licuri_presence)=="1"] <- "Licuri palm present"
 
-hab3.norecord<-subset(hab.licuri,occurrence=="No record")
-hab3.core<-subset(hab.licuri,occurrence=="Core")
-hab3.historic<-subset(hab.licuri,occurrence=="Historically occupied")
-hab3.recent<-subset(hab.licuri,occurrence=="Recently occupied")
+hab.degraded.3<-subset(hab.licuri,habitat=="Degraded")
+hab.degraded.agri.3<-subset(hab.licuri,habitat=="Degraded mixed with agriculture")
+hab.rural.3<-subset(hab.licuri,habitat=="Rural settlement")
+hab.conserved.3<-subset(hab.licuri,habitat=="Conserved")
+# hab3.norecord<-subset(hab.licuri,occurrence=="No record")
+# hab3.core<-subset(hab.licuri,occurrence=="Core")
+# hab3.historic<-subset(hab.licuri,occurrence=="Historically occupied")
+# hab3.recent<-subset(hab.licuri,occurrence=="Recently occupied")
 
-p3.hab.norecord<-ggplot(data=hab3.norecord)+
-  geom_errorbar(mapping = aes(x=licuri_presence, ymin=lower, ymax=upper,color=habitat),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=licuri_presence,y=mean, color=habitat), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in areas with no records"))+
+
+p3.hab.degraded<-ggplot(data=hab.degraded.3)+
+  geom_errorbar(mapping = aes(x=licuri_presence, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=licuri_presence,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["degraded habitat"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p3.hab.norecord
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p3.hab.degraded
 
-p3.hab.core<-ggplot(data=hab3.core)+
-  geom_errorbar(mapping = aes(x=licuri_presence, ymin=lower, ymax=upper,color=str_wrap(habitat,20)),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=licuri_presence,y=mean, color=str_wrap(habitat,20)), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in core areas"))+
+p3.hab.degraded.agri<-ggplot(data=hab.degraded.agri.3)+
+  geom_errorbar(mapping = aes(x=licuri_presence, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=licuri_presence,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["degraded habitat with cultivation"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.title = element_text(size=7),
-        legend.text = element_text(size=6),
-        legend.key.size=unit(0.25,"cm"))
-p3.hab.core
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(size=8),
+        legend.title = element_text(size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
+p3.hab.degraded.agri
 
-p3.hab.historic<-ggplot(data=hab3.historic)+
-  geom_errorbar(mapping = aes(x=licuri_presence, ymin=lower, ymax=upper,color=habitat),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=licuri_presence,y=mean, color=habitat), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in historically occupied areas"))+
+p3.hab.rural<-ggplot(data=hab.rural.3)+
+  geom_errorbar(mapping = aes(x=licuri_presence, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=licuri_presence,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["rural settlement"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p3.hab.historic
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p3.hab.rural
 
-p3.hab.recent<-ggplot(data=hab3.recent)+
-  geom_errorbar(mapping = aes(x=licuri_presence, ymin=lower, ymax=upper,color=str_wrap(habitat,20)),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=licuri_presence,y=mean, color=str_wrap(habitat,20)), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status",guide = guide_legend(override.aes = list(color = "white")))+
-  labs(y=expression(psi ~" in recently occupied areas"))+
+p3.hab.conserved<-ggplot(data=hab.conserved.3)+
+  geom_errorbar(mapping = aes(x=licuri_presence, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=licuri_presence,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records",guide = guide_legend(override.aes = list(color = "white")))+
+  scale_shape_discrete(name= "Lear's Macaw occurrence",guide = guide_legend(override.aes = list(color = "white")))+
+  labs(y=expression(psi["conserved habitat"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.text = element_text(color = "white",size=6),
-        legend.title = element_text(color = "white",size=7),
-        legend.key = element_rect(fill = "white",size=6),
-        legend.key.size=unit(0.25,"cm"))
-p3.hab.recent
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(color = "white",size=8),
+        legend.title = element_text(color = "white",size=8),
+        legend.key = element_rect(fill = "white",size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
+p3.hab.conserved
 
-grid_hab_licuri<-grid.arrange(p3.hab.norecord,p3.hab.core,p3.hab.historic,p3.hab.recent,nrow=2,widths=c(1,1.35))
+grid_hab_licuri<-grid.arrange(p3.hab.degraded,p3.hab.degraded.agri,p3.hab.rural,p3.hab.conserved,nrow=2,widths=c(1,1.45))
 
-ggsave(filename="C:/Users/voeroesd/Dropbox/", 
+ggsave(filename="C:/Users/voeroesd/Dropbox/habitat_licuri.pdf", 
        plot = grid_hab_licuri, 
        width = 210, 
        height = 140, 
        units = "mm")
 
-ggsave(filename="~/Dropbox/habitat_licuri.pdf", 
-       plot = grid_hab_licuri, 
-       width = 210, 
-       height = 140, 
-       units = "mm")
+# ggsave(filename="~/Dropbox/habitat_licuri.pdf", 
+#        plot = grid_hab_licuri, 
+#        width = 210, 
+#        height = 140, 
+#        units = "mm")
 
 
 # Preds.Fig fire ####
 hab.fire<-predicts(model=hab2,values="0;0;0;F;F(2);F",set.seed=1)
+
 
 colnames(hab.fire)[10]<-"habitat"
 hab.fire$habitat<-as.factor(hab.fire$habitat)
@@ -1716,82 +1755,100 @@ levels(hab.fire$occurrence)[levels(hab.fire$occurrence)=="0"] <- "No record"
 levels(hab.fire$occurrence)[levels(hab.fire$occurrence)=="1"] <- "Core"
 levels(hab.fire$occurrence)[levels(hab.fire$occurrence)=="2"] <- "Historically occupied"
 levels(hab.fire$occurrence)[levels(hab.fire$occurrence)=="3"] <- "Recently occupied"
+hab.fire$occurrence<-factor(hab.fire$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
+
+
+hab.fire$presence<-rep(c("Absent","Present","Absent","Present"),each=8)
 
 hab.fire$fire<-as.factor(hab.fire$fire)
 levels(hab.fire$fire)[levels(hab.fire$fire)=="0"] <- "No fire"
 levels(hab.fire$fire)[levels(hab.fire$fire)=="fire"] <- "Fire"
 
-hab4.norecord<-subset(hab.fire,occurrence=="No record")
-hab4.core<-subset(hab.fire,occurrence=="Core")
-hab4.historic<-subset(hab.fire,occurrence=="Historically occupied")
-hab4.recent<-subset(hab.fire,occurrence=="Recently occupied")
+hab.degraded.4<-subset(hab.fire,habitat=="Degraded")
+hab.degraded.agri.4<-subset(hab.fire,habitat=="Degraded mixed with agriculture")
+hab.rural.4<-subset(hab.fire,habitat=="Rural settlement")
+hab.conserved.4<-subset(hab.fire,habitat=="Conserved")
 
-p4.hab.norecord<-ggplot(data=hab4.norecord)+
-  geom_errorbar(mapping = aes(x=fire, ymin=lower, ymax=upper,color=habitat),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=fire,y=mean, color=habitat), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in areas with no records"))+
+# hab4.norecord<-subset(hab.fire,occurrence=="No record")
+# hab4.core<-subset(hab.fire,occurrence=="Core")
+# hab4.historic<-subset(hab.fire,occurrence=="Historically occupied")
+# hab4.recent<-subset(hab.fire,occurrence=="Recently occupied")
+
+
+p4.hab.degraded<-ggplot(data=hab.degraded.4)+
+  geom_errorbar(mapping = aes(x=fire, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=fire,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["degraded habitat"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p4.hab.norecord
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p4.hab.degraded
 
-p4.hab.core<-ggplot(data=hab4.core)+
-  geom_errorbar(mapping = aes(x=fire, ymin=lower, ymax=upper,color=str_wrap(habitat,20)),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=fire,y=mean, color=str_wrap(habitat,20)), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in core areas"))+
+p4.hab.degraded.agri<-ggplot(data=hab.degraded.agri.4)+
+  geom_errorbar(mapping = aes(x=fire, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=fire,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["degraded habitat with cultivation"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.title = element_text(size=7),
-        legend.text = element_text(size=6),
-        legend.key.size=unit(0.25,"cm"))
-p4.hab.core
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(size=8),
+        legend.title = element_text(size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
+p4.hab.degraded.agri
 
-p4.hab.historic<-ggplot(data=hab4.historic)+
-  geom_errorbar(mapping = aes(x=fire, ymin=lower, ymax=upper,color=habitat),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=fire,y=mean, color=habitat), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in historically occupied areas"))+
+p4.hab.rural<-ggplot(data=hab.rural.4)+
+  geom_errorbar(mapping = aes(x=fire, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=fire,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["rural settlement"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p4.hab.historic
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p4.hab.rural
 
-p4.hab.recent<-ggplot(data=hab4.recent)+
-  geom_errorbar(mapping = aes(x=fire, ymin=lower, ymax=upper,color=str_wrap(habitat,20)),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=fire,y=mean, color=str_wrap(habitat,20)), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status",guide = guide_legend(override.aes = list(color = "white")))+
-  labs(y=expression(psi ~" in recently occupied areas"))+
+p4.hab.conserved<-ggplot(data=hab.conserved.4)+
+  geom_errorbar(mapping = aes(x=fire, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=fire,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records",guide = guide_legend(override.aes = list(color = "white")))+
+  scale_shape_discrete(name= "Lear's Macaw occurrence",guide = guide_legend(override.aes = list(color = "white")))+
+  labs(y=expression(psi["conserved habitat"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.text = element_text(color = "white",size=6),
-        legend.title = element_text(color = "white",size=7),
-        legend.key = element_rect(fill = "white",size=6),
-        legend.key.size=unit(0.25,"cm"))
-p4.hab.recent
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(color = "white",size=8),
+        legend.title = element_text(color = "white",size=8),
+        legend.key = element_rect(fill = "white",size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
+p4.hab.conserved
 
-grid_hab_fire<-grid.arrange(p4.hab.norecord,p4.hab.core,p4.hab.historic,p4.hab.recent,nrow=2,widths=c(1,1.35))
+grid_hab_fire<-grid.arrange(p4.hab.degraded,p4.hab.degraded.agri,p4.hab.rural,p4.hab.conserved,nrow=2,widths=c(1,1.45))
 
-ggsave(filename="C:/Users/voeroesd/Dropbox/", 
+ggsave(filename="C:/Users/voeroesd/Dropbox/habitat_fire.pdf", 
        plot = grid_hab_fire, 
        width = 210, 
        height = 140, 
        units = "mm")
 
-ggsave(filename="~/Dropbox/habitat_fire.pdf", 
-       plot = grid_hab_fire, 
-       width = 210, 
-       height = 140, 
-       units = "mm")
+# ggsave(filename="~/Dropbox/habitat_fire.pdf", 
+#        plot = grid_hab_fire, 
+#        width = 210, 
+#        height = 140, 
+#        units = "mm")
 
 # Preds.Fig ecoregion ####
 hab.ecoregion<-predicts(model=hab2,values="0;0;0;0;F;F",set.seed=1)
@@ -1808,66 +1865,85 @@ levels(hab.ecoregion$occurrence)[levels(hab.ecoregion$occurrence)=="0"] <- "No r
 levels(hab.ecoregion$occurrence)[levels(hab.ecoregion$occurrence)=="1"] <- "Core"
 levels(hab.ecoregion$occurrence)[levels(hab.ecoregion$occurrence)=="2"] <- "Historically occupied"
 levels(hab.ecoregion$occurrence)[levels(hab.ecoregion$occurrence)=="3"] <- "Recently occupied"
+hab.ecoregion$occurrence<-factor(hab.ecoregion$occurrence, levels = c("No record","Historically occupied","Recently occupied","Core"))
 
-hab5.norecord<-subset(hab.ecoregion,occurrence=="No record")
-hab5.core<-subset(hab.ecoregion,occurrence=="Core")
-hab5.historic<-subset(hab.ecoregion,occurrence=="Historically occupied")
-hab5.recent<-subset(hab.ecoregion,occurrence=="Recently occupied")
+hab.ecoregion$presence<-rep(c("Absent","Present","Absent","Present"),each=8)
 
-p5.hab.norecord<-ggplot(data=hab5.norecord)+
-  geom_errorbar(mapping = aes(x=ecoregion, ymin=lower, ymax=upper,color=habitat),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=ecoregion,y=mean, color=habitat), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in areas with no records"))+
+hab.ecoregion<-hab.ecoregion[-c(25:28),]
+
+hab.degraded.5<-subset(hab.ecoregion,habitat=="Degraded")
+hab.degraded.agri.5<-subset(hab.ecoregion,habitat=="Degraded mixed with agriculture")
+hab.rural.5<-subset(hab.ecoregion,habitat=="Rural settlement")
+hab.conserved.5<-subset(hab.ecoregion,habitat=="Conserved")
+
+
+# hab5.norecord<-subset(hab.ecoregion,occurrence=="No record")
+# hab5.core<-subset(hab.ecoregion,occurrence=="Core")
+# hab5.historic<-subset(hab.ecoregion,occurrence=="Historically occupied")
+# hab5.recent<-subset(hab.ecoregion,occurrence=="Recently occupied")
+
+p5.hab.degraded<-ggplot(data=hab.degraded.5)+
+  geom_errorbar(mapping = aes(x=ecoregion, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=ecoregion,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["degraded habitat"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p5.hab.norecord
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p5.hab.degraded
 
-p5.hab.core<-ggplot(data=hab5.core)+
-  geom_errorbar(mapping = aes(x=ecoregion, ymin=lower, ymax=upper,color=str_wrap(habitat,20)),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=ecoregion,y=mean, color=str_wrap(habitat,20)), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in core areas"))+
+p5.hab.degraded.agri<-ggplot(data=hab.degraded.agri.5)+
+  geom_errorbar(mapping = aes(x=ecoregion, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=ecoregion,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["degraded habitat with cultivation"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.title = element_text(size=7),
-        legend.text = element_text(size=6),
-        legend.key.size=unit(0.25,"cm"))
-p5.hab.core
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(size=8),
+        legend.title = element_text(size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
+p5.hab.degraded.agri
 
-p5.hab.historic<-ggplot(data=hab5.historic)+
-  geom_errorbar(mapping = aes(x=ecoregion, ymin=lower, ymax=upper,color=habitat),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=ecoregion,y=mean, color=habitat), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status")+
-  labs(y=expression(psi ~" in historically occupied areas"))+
+p5.hab.rural<-ggplot(data=hab.rural.5)+
+  geom_errorbar(mapping = aes(x=ecoregion, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=ecoregion,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records")+
+  scale_shape_discrete(name= "Lear's Macaw occurrence")+
+  labs(y=expression(psi["rural settlement"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.position = "none")
-p5.hab.historic
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.position = "none")+
+  ylim(0,1)
+p5.hab.rural
 
-p5.hab.recent<-ggplot(data=hab5.recent)+
-  geom_errorbar(mapping = aes(x=ecoregion, ymin=lower, ymax=upper,color=str_wrap(habitat,20)),position=position_dodge(width=0.5),width=0.05,size=0.5)+
-  geom_point( mapping=aes(x=ecoregion,y=mean, color=str_wrap(habitat,20)), position=position_dodge(width=0.5),size=2)+
-  scale_color_discrete(name= "Habitat conservation status",guide = guide_legend(override.aes = list(color = "white")))+
-  labs(y=expression(psi ~" in recently occupied areas"))+
+p5.hab.conserved<-ggplot(data=hab.conserved.5)+
+  geom_errorbar(mapping = aes(x=ecoregion, ymin=lower, ymax=upper,color=occurrence),position=position_dodge(width=0.5),width=0.05,size=0.5)+
+  geom_point( mapping=aes(x=ecoregion,y=mean, color=occurrence,shape=presence), position=position_dodge(width=0.5),size=2)+
+  scale_color_discrete(name= "Lear's Macaw records",guide = guide_legend(override.aes = list(color = "white")))+
+  scale_shape_discrete(name= "Lear's Macaw occurrence",guide = guide_legend(override.aes = list(color = "white")))+
+  labs(y=expression(psi["conserved habitat"]))+
   theme(axis.title.x = element_blank(),
-        axis.title.y = element_text(size=6,angle = 90,vjust = 0.5),
-        axis.text.x = element_text(size=6),
-        axis.text.y = element_text(size=6),
-        legend.text = element_text(color = "white",size=6),
-        legend.title = element_text(color = "white",size=7),
-        legend.key = element_rect(fill = "white",size=6),
-        legend.key.size=unit(0.25,"cm"))
-p5.hab.recent
+        axis.title.y = element_text(size=8,angle = 90,vjust = 0.5),
+        axis.text.x = element_text(size=8),
+        axis.text.y = element_text(size=8),
+        legend.text = element_text(color = "white",size=8),
+        legend.title = element_text(color = "white",size=8),
+        legend.key = element_rect(fill = "white",size=8),
+        legend.key.size=unit(0.30,"cm"))+
+  ylim(0,1)
+p5.hab.conserved
 
-grid_hab_ecoregion<-grid.arrange(p5.hab.norecord,p5.hab.core,p5.hab.historic,p5.hab.recent,nrow=2,widths=c(1,1.35))
+grid_hab_ecoregion<-grid.arrange(p5.hab.degraded,p5.hab.degraded.agri,p5.hab.rural,p5.hab.conserved,nrow=2,widths=c(1,1.45))
 
 ggsave(filename="C:/Users/voeroesd/Dropbox/habitat_ecoregion.pdf", 
        plot = grid_hab_ecoregion, 
@@ -1875,8 +1951,8 @@ ggsave(filename="C:/Users/voeroesd/Dropbox/habitat_ecoregion.pdf",
        height = 140, 
        units = "mm")
 
-ggsave(filename="~/Dropbox/habitat_ecoregion.pdf", 
-       plot = grid_hab_ecoregion, 
-       width = 210, 
-       height = 140, 
-       units = "mm")
+# ggsave(filename="~/Dropbox/habitat_ecoregion.pdf", 
+#        plot = grid_hab_ecoregion, 
+#        width = 210, 
+#        height = 140, 
+#        units = "mm")
