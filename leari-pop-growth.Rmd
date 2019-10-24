@@ -19,7 +19,7 @@ library(readr)
 library(knitr)
 library(kableExtra)
 
-matrix <- read_csv("~/Dropbox/A.leari/modelo censos/matrix-censos-CEMAVE_3_one population.csv",col_types = cols(date = col_date(format = "%Y-%m-%d")))
+matrix <- read_csv("~/Dropbox/A.leari/ms pop trend/modelo_censos1/matrix-censos-CEMAVE_3_one population.csv",col_types = cols(date = col_date(format = "%Y-%m-%d")))
 
 # a function to get mid day for month and convert to julian day, to use to get the julian date of surveys with known month but unknown day
 mid.month.day <- function(month){
@@ -124,6 +124,7 @@ summary(umf1)
 #### Fit the models
 Only NB models converge
 ```{r Fit a model, echo=FALSE, message=FALSE, warning=FALSE}
+library("nmixgof")
 
 #Null (state level)
 #m01 <- pcount(~times~1,umf1,mixture = "P")# does not converge
