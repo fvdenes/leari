@@ -341,3 +341,6 @@ write.csv(surv,"C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/road-surve
 write.csv(surv,"~/Dropbox/A.leari-CHICO/road_surveys_Aleari/road-surveys_agregado_habitats.csv",row.names = F)
 write.csv(surv,"~/Dropbox/A.leari/road_surveys_Aleari/road-surveys_agregado_habitats.csv",row.names = F)
 write.csv(surv_caa,"~/Dropbox/A.leari/road_surveys_Aleari/road-surveys_agregado_habitats_caatinga.csv",row.names = F)
+
+
+write.csv(surv,"~/Dropbox/A.leari/road_surveys_Aleari/road-surveys_agregado_habitats_total.csv",row.names = F)

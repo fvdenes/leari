@@ -7,6 +7,8 @@ library(gridExtra)
 library("nnet")
 library(glm.predict)
 library(stringr)
+library(car)
+
 
 # Functions ####
 # A function to generate predictions (with CIs) from zeroinfl models
@@ -44,6 +46,9 @@ load("C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys.
 #load("~/Dropbox/A.leari-CHICO/road_surveys_Aleari/modelo-road-surveys.Rdata") # para carregar do computador da Erica
 #load("~/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys.Rdata") 
 
+save.image("~/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys_result.Rdata")
+# load("~/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys_result.Rdata")
+
 # Registros de psitacideos ####
 
 ## quais especies tem 15 registros ou mais?
@@ -56,9 +61,54 @@ tabela_dim$total.individuals<-apply(surv_caa[,grep("count_",colnames(surv_caa))]
 
 
 rownames(tabela_dim)<-substring(rownames(tabela_dim),first=7)
+tabela_dim$species<-rownames(tabela_dim)
 tabela_dim
+
+tabela_dim$proportion.counts<-round(tabela_dim$total.individuals/sum(tabela_dim$total.individuals),2)
+
+tabela_dim$proportion.encounters<-round(tabela_dim$`encounters(presence)`/sum(tabela_dim$`encounters(presence)`),2)
 #write.csv(tabela_dim,"C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/summary_parrot_records.csv",row.names = F)
 #write.csv(tabela_dim,"~/Dropbox/A.leari/road_surveys_Aleari/summary_parrot_records.csv",row.names = F)
+##
+
+
+tabela.hab.km<-aggregate(habfrag_length~habitat+ecoregion,data=surv_caa,FUN="sum")
+names(tabela.hab.km)[3]<-"total km surveyed"
+tabela.hab.km
+#write.csv(tabela.hab.km,"C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/summary_habitat_ecoregion_km.csv",row.names = F)
+write.csv(tabela.hab.km,"~/Dropbox/A.leari/road_surveys_Aleari/summary_habitat_ecoregion_km.csv",row.names = F)
+
+
+tabela.ranching<-as.data.frame(table(surv_caa$habitat,surv_caa$ecoregion,surv_caa$ranching))
+colnames(tabela.ranching)<-c("habitat","ecoregion","ranching","frequency (number of sample units)")
+tabela.ranching$ranching<-rep(c("pasture absent","pasture present"),each=8)
+tabela.ranching
+#write.csv(tabela.ranching,"C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/summary_ranching.csv",row.names = F)
+write.csv(tabela.ranching,"~/Dropbox/A.leari/road_surveys_Aleari/summary_ranching.csv",row.names = F)
+
+
+tabela.agriculture<-as.data.frame(table(surv_caa$habitat,surv_caa$ecoregion,surv_caa$agriculture))
+colnames(tabela.agriculture)<-c("habitat","ecoregion","agriculture","frequency (number of sample units)")
+tabela.agriculture$agriculture<-rep(c("cultivation absent","cultivation present"),each=8)
+tabela.agriculture
+#write.csv(tabela.agriculture,"C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/summary_agriculture.csv",row.names = F)
+write.csv(tabela.agriculture,"~/Dropbox/A.leari/road_surveys_Aleari/summary_agriculture.csv",row.names = F)
+
+
+tabela.fire<-as.data.frame(table(surv_caa$habitat,surv_caa$ecoregion,surv_caa$fire))
+colnames(tabela.fire)<-c("habitat","ecoregion","fire","frequency (number of sample units)")
+tabela.fire$fire<-rep(c("fire absent","fire present"),each=8)
+tabela.fire
+#write.csv(tabela.fire,"C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/summary_fire.csv",row.names = F)
+write.csv(tabela.fire,"~/Dropbox/A.leari/road_surveys_Aleari/summary_fire.csv",row.names = F)
+
+
+tabela.licuri<-as.data.frame(table(surv_caa$habitat,surv_caa$ecoregion,surv_caa$licuri_presence))
+colnames(tabela.licuri)<-c("habitat","ecoregion","licuri","frequency (number of sample units)")
+tabela.licuri$licuri<-rep(c("licuri absent","licuri present"),each=8)
+tabela.licuri
+#write.csv(tabela.licuri,"C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/summary_licuri.csv",row.names = F)
+write.csv(tabela.licuri,"~/Dropbox/A.leari/road_surveys_Aleari/summary_licuri.csv",row.names = F)
 
 # save.image("C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys.Rdata")
 # 
@@ -829,8 +879,10 @@ ggsave(filename="C:/Users/voeroesd/Dropbox/Ecac_Fxan_plots.pdf",
 
 
 #### Species richness ####
+surv_caa$parrot.richness_noleari<-surv_caa$parrot.richness
+surv_caa$parrot.richness_noleari[which(surv_caa$occurrence%in%c(2,3)&surv_caa$occu_Anodorhynchus_leari>0)]<-surv_caa$parrot.richness_noleari[which(surv_caa$occurrence%in%c(2,3)&surv_caa$occu_Anodorhynchus_leari>0)]-1
 
-rich<-zeroinfl(parrot.richness~
+rich<-zeroinfl(parrot.richness_noleari~
                  ecoregion+cattle+goat+
                  ranching+agriculture+fire+range|1
                ,dist ="poisson",
@@ -838,7 +890,7 @@ rich<-zeroinfl(parrot.richness~
                data=surv_caa)
 summary(rich)
 
-rich2<-zeroinfl(parrot.richness~
+rich2<-zeroinfl(parrot.richness_noleari~
                   ecoregion+cattle+goat+
                   ranching+agriculture+fire+occurrence|1
                 ,dist ="poisson",
@@ -1085,11 +1137,11 @@ ggsave(filename="C:/Users/voeroesd/Dropbox/richness_plots.pdf",
        height = 140, 
        units = "mm")
 
-# ggsave(filename="~/Dropbox/richness_plots.pdf", 
-#        plot = grid_richness, 
-#        width = 210, 
-#        height = 140, 
-#        units = "mm")
+ggsave(filename="~/Dropbox/richness_plots.pdf",
+       plot = grid_richness,
+       width = 210,
+       height = 140,
+       units = "mm")
 
 
 
@@ -1956,3 +2008,22 @@ ggsave(filename="C:/Users/voeroesd/Dropbox/habitat_ecoregion.pdf",
 #        width = 210, 
 #        height = 140, 
 #        units = "mm")
+
+
+# Goodness of Fit Tests ####
+
+summary(Ecac2)
+Anova(Ecac2)
+
+summary(Fxan2)
+Anova(Fxan2)
+
+summary(rich2)
+Anova(rich2)
+
+summary(m_licuri)
+Anova(m_licuri,test.statistic="Wald")
+
+summary(hab2)
+Anova(hab2)
+
