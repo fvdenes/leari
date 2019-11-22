@@ -46,6 +46,8 @@ load("C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys.
 #load("~/Dropbox/A.leari-CHICO/road_surveys_Aleari/modelo-road-surveys.Rdata") # para carregar do computador da Erica
 #load("~/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys.Rdata") 
 
+
+load(("C:/Users/voeroesd/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys_result.Rdata"))
 save.image("~/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys_result.Rdata")
 # load("~/Dropbox/A.leari/road_surveys_Aleari/modelo-road-surveys_result.Rdata")
 
@@ -1491,8 +1493,8 @@ p1.hab.degraded
 p1.hab.degraded.agri<-ggplot(data=hab.degraded.agri)+
   geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
   geom_line(mapping = aes(x=cattle, y=mean,color=occurrence,linetype=presence),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+
-  scale_color_discrete(name= "Habitat conservation status")+
+  scale_fill_discrete(name= "Lear's Macaw records")+
+  scale_color_discrete(name= "Lear's Macaw records")+
   scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
   labs(y=expression(psi["degraded habitat with cultivation"]), x="Cattle abundance")+
@@ -1509,8 +1511,8 @@ p1.hab.degraded.agri
 p1.hab.rural<-ggplot(data=hab.rural)+
   geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
   geom_line(mapping = aes(x=cattle, y=mean,color=occurrence,linetype=presence),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+
-  scale_color_discrete(name= "Habitat conservation status")+
+  scale_fill_discrete(name= "Lear's Macaw records")+
+  scale_color_discrete(name= "Lear's Macaw records")+
   scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
   labs(y=expression(psi["rural settlement"]), x="Cattle abundance")+
@@ -1527,8 +1529,8 @@ p1.hab.rural
 p1.hab.conserved<-ggplot(data=hab.conserved)+
   geom_ribbon(mapping = aes(x=cattle, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
   geom_line(mapping = aes(x=cattle, y=mean,color=occurrence,linetype=presence),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+
-  scale_color_discrete(name= "Habitat conservation status")+
+  scale_fill_discrete(name= "Lear's Macaw records")+
+  scale_color_discrete(name= "Lear's Macaw records")+
   scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1,override.aes = list(colour = "white",fill="white")),
          linetype = guide_legend(order = 1,override.aes = list(colour = "white")),
@@ -1610,8 +1612,8 @@ p2.hab.degraded
 p2.hab.degraded.agri<-ggplot(data=hab.degraded.agri.2)+
   geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
   geom_line(mapping = aes(x=goat, y=mean,color=occurrence,linetype=presence),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+
-  scale_color_discrete(name= "Habitat conservation status")+
+  scale_fill_discrete(name= "Lear's Macaw records")+
+  scale_color_discrete(name= "Lear's Macaw records")+
   scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
   labs(y=expression(psi["degraded habitat with cultivation"]), x="Goat abundance")+
@@ -1628,8 +1630,8 @@ p2.hab.degraded.agri
 p2.hab.rural<-ggplot(data=hab.rural.2)+
   geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
   geom_line(mapping = aes(x=goat, y=mean,color=occurrence,linetype=str_wrap(presence)),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+
-  scale_color_discrete(name= "Habitat conservation status")+
+  scale_fill_discrete(name= "Lear's Macaw records")+
+  scale_color_discrete(name= "Lear's Macaw records")+
   scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1),fill = guide_legend(order = 1))+
   labs(y=expression(psi["rural settlement"]), x="Goat abundance")+
@@ -1646,8 +1648,8 @@ p2.hab.rural
 p2.hab.conserved<-ggplot(data=hab.conserved.2)+
   geom_ribbon(mapping = aes(x=goat, ymin=lower, ymax=upper,fill=occurrence),alpha=0.3)+
   geom_line(mapping = aes(x=goat, y=mean,color=occurrence,linetype=presence),size=0.5)+
-  scale_fill_discrete(name= "Habitat conservation status")+
-  scale_color_discrete(name= "Habitat conservation status")+
+  scale_fill_discrete(name= "Lear's Macaw records")+
+  scale_color_discrete(name= "Lear's Macaw records")+
   scale_linetype_discrete(name= "Lear's Macaw occurrence")+
   guides(color = guide_legend(order = 1,override.aes = list(colour = "white",fill="white")),
          linetype = guide_legend(order = 1,override.aes = list(colour = "white")),
